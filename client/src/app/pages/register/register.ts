@@ -47,7 +47,7 @@ export class RegisterComponent {
     this.isLoading = true;
     this.authService.register(this.email, this.password, this.name)
       .then(() => {
-        this.router.navigate(['/home']);
+        this.router.navigate(['/inventory']);
       })
       .catch((error) => {
         this.errorMessage = error.message;

@@ -30,7 +30,7 @@ export class LoginComponent {
     this.isLoading = true;
     this.authService.login(this.email, this.password)
       .then(() => {
-        this.router.navigate(['/home']);
+        this.router.navigate(['/inventory']);
       })
       .catch((error) => {
         this.errorMessage = error.message;

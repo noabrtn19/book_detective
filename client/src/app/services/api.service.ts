@@ -42,4 +42,13 @@ export class ApiService {
     });
     return this.http.post(`api/auth/logout`, {}, { headers });
   }
+
+  uploadInventoryCsv(file: File, token: string): Observable<any> {
+    const formData = new FormData();
+    formData.append('file', file);
+    const headers = new HttpHeaders({
+      'Authorization': `Bearer ${token}`
+    });
+    return this.http.post(`api/inventory/upload-csv`, formData, { headers });
+  }
 }
