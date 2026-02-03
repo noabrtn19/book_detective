@@ -1,0 +1,74 @@
+<div class="home-container">
+  <div class="hero-section">
+    <div class="hero-content">
+      @if (authService.isAuthenticated()) {
+        <h1 class="hero-title">Heureux de vous revoir, {{ formatUserName() }}</h1>
+      } @else {
+        <h1 class="hero-title">Bienvenue dans Book Detective</h1>
+      }
+      <p class="hero-subtitle">Simplifiez l'inventaire de votre librairie avec la technologie IA</p>
+      
+      <div class="hero-description">
+        <p>Book Detective utilise la reconnaissance optique et l'intelligence artificielle pour scanner et identifier rapidement les livres de votre inventaire.</p>
+      </div>
+
+      <div class="hero-buttons">
+        <a routerLink="/login" class="btn btn-primary">Commencer</a>
+        <button class="btn btn-secondary" (click)="scrollToFeatures()">En savoir plus</button>
+      </div>
+    </div>
+
+    <div class="hero-image">
+      <div class="book-icon">📚</div>
+    </div>
+  </div>
+
+  <section class="features-section" #featuresSection>
+    <h2 class="section-title">Caractéristiques principales</h2>
+    <div class="features-grid">
+      <div class="feature-card">
+        <div class="feature-icon">📷</div>
+        <h3 class="feature-title">Scan en temps réel</h3>
+        <p class="feature-description">Utilisez la caméra de votre téléphone pour scanner et identifier les livres instantanément.</p>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon">🤖</div>
+        <h3 class="feature-title">Technologie IA</h3>
+        <p class="feature-description">Reconnaissance automatique des titres et auteurs grâce à YOLO et PaddleOCR.</p>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon">📊</div>
+        <h3 class="feature-title">Gestion d'inventaire</h3>
+        <p class="feature-description">Mettez à jour automatiquement votre inventaire en temps réel lors du scan.</p>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon">🔄</div>
+        <h3 class="feature-title">Synchronisation CSV</h3>
+        <p class="feature-description">Importez facilement votre base de données depuis votre logiciel d'inventaire.</p>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon">⚡</div>
+        <h3 class="feature-title">Recherche rapide</h3>
+        <p class="feature-description">Trouvez rapidement les livres ambigus ou non reconnus pour correction manuelle.</p>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon">📱</div>
+        <h3 class="feature-title">Responsive</h3>
+        <p class="feature-description">Accédez à l'application depuis n'importe quel appareil mobile ou bureau.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="cta-section">
+    <div class="cta-content">
+      <h2 class="cta-title">Prêt à commencer ?</h2>
+      <p class="cta-description">Créez un compte et commencez à optimiser votre inventaire dès aujourd'hui.</p>
+      <a routerLink="/register" class="btn btn-primary">Créer un compte</a>
+    </div>
+  </section>
+</div>

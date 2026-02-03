@@ -1,0 +1,47 @@
+<nav class="navbar">
+  <div class="navbar-container">
+    <div class="navbar-logo">
+      <a routerLink="/home" (click)="closeMenu()" class="logo-text">📚 Book Detective</a>
+    </div>
+
+    <div class="menu-icon" (click)="toggleMenu()" [class.active]="isMenuOpen">
+      <span></span>
+      <span></span>
+      <span></span>
+    </div>
+
+    <ul class="nav-menu" [class.active]="isMenuOpen">
+      <li class="nav-item">
+        <a routerLink="/home" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }" (click)="closeMenu()" class="nav-link">
+          ACCUEIL
+        </a>
+      </li>
+      <li class="nav-item">
+        <a href="#about" (click)="closeMenu()" class="nav-link">
+          À PROPOS
+        </a>
+      </li>
+      @if (authService.isAuthenticated()) {
+        <li class="nav-item">
+          <span class="user-info">{{ authService.getCurrentUser()?.email }}</span>
+        </li>
+        <li class="nav-item">
+          <button (click)="logout()" class="nav-link logout-btn">
+            DÉCONNEXION
+          </button>
+        </li>
+      } @else {
+        <li class="nav-item">
+          <a routerLink="/login" routerLinkActive="active" (click)="closeMenu()" class="nav-link">
+            CONNEXION
+          </a>
+        </li>
+        <li class="nav-item">
+          <a routerLink="/register" routerLinkActive="active" (click)="closeMenu()" class="nav-link nav-link-btn">
+            CRÉER UN COMPTE
+          </a>
+        </li>
+      }
+    </ul>
+  </div>
+</nav>
