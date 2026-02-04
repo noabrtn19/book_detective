@@ -67,177 +67,38 @@
   <main class="inventory-main">
     <!-- Step: Upload CSV -->
     @if (currentStep() === 'upload') {
-      <section class="step-content">
-        <div class="step-header">
-          <h2 class="step-title">Importer votre base de données</h2>
-          <p class="step-description">Téléchargez un fichier CSV contenant votre liste de livres</p>
-        </div>
-
-        <!-- Upload Area -->
-        <div 
-          class="upload-area"
-          [class.dragging]="isDraggingOver()"
-          (dragover)="onDragOver($event)"
-          (dragleave)="onDragLeave($event)"
-          (drop)="onDrop($event)"
-        >
-          <div class="upload-content">
-            <span class="upload-icon">📁</span>
-            <p class="upload-text">Glissez-déposez votre fichier CSV ici</p>
-            <p class="upload-or">ou</p>
-            <label class="upload-label">
-              Parcourir mon ordinateur
-              <input 
-                type="file" 
-                accept=".csv"
-                (change)="onFileSelected($event)"
-                hidden
-              />
-            </label>
-          </div>
-        </div>
-
-        <!-- Error Message -->
-        @if (uploadError()) {
-          <div class="error-message">
-            ⚠️ {{ uploadError() }}
-          </div>
-        }
-
-        <!-- File Info -->
-        @if (fileName()) {
-          <div class="file-info">
-            <span class="file-icon">✓</span>
-            <span class="file-name">{{ fileName() }}</span>
-            <span class="record-count">{{ csvData().length }} livres</span>
-          </div>
-        }
-
-        <!-- CSV Format Guide -->
-        <div class="csv-guide">
-          <h4 class="guide-title">Format attendu</h4>
-          <p class="guide-text">Votre fichier CSV doit contenir les colonnes suivantes :</p>
-          <ul class="guide-list">
-            <li><strong>Titre</strong> - Titre du livre</li>
-            <li><strong>Auteur</strong> - Auteur du livre</li>
-            <li><strong>ISBN</strong> (optionnel) - Code ISBN</li>
-            <li><strong>Quantité</strong> (optionnel) - Nombre de copies</li>
-          </ul>
-        </div>
-      </section>
+      <app-inventory-upload
+        [uploadError]="uploadError()"
+        [recordCount]="csvData().length"
+        (fileUploaded)="handleFileUpload($event)"
+      />
     }
 
     <!-- Step: Preview -->
     @if (currentStep() === 'preview') {
-      <section class="step-content">
-        <div class="step-header">
-          <h2 class="step-title">Aperçu de vos données</h2>
-          <p class="step-description">{{ csvData().length }} livres détectés</p>
-        </div>
-
-        <!-- Table Preview -->
-        <div class="preview-container">
-          <div class="table-wrapper">
-            <table class="preview-table">
-              <thead>
-                <tr>
-                  <th>Titre</th>
-                  <th>Auteur</th>
-                  <th>ISBN</th>
-                  <th>Quantité</th>
-                </tr>
-              </thead>
-              <tbody>
-                @for (book of csvData().slice(0, 10); track book.title + book.author) {
-                  <tr>
-                    <td>{{ book.title }}</td>
-                    <td>{{ book.author }}</td>
-                    <td>{{ book.isbn || '—' }}</td>
-                    <td class="qty-cell">{{ formatNumber(book.quantity) }}</td>
-                  </tr>
-                }
-              </tbody>
-            </table>
-          </div>
-
-          @if (csvData().length > 10) {
-            <p class="preview-note">Affichage des 10 premiers livres ({{ csvData().length }} au total)</p>
-          }
-        </div>
-      </section>
+      <app-inventory-preview
+        [detectedColumns]="detectedColumns()"
+        [columnMappings]="columnMappings()"
+        [rawCsvRows]="rawCsvRows()"
+        [bookCount]="csvData().length"
+        [quantityWarningMessage]="quantityWarningMessage()"
+        (columnMappingChanged)="onColumnMappingChange($event.columnName, $event.event)"
+      />
     }
 
     <!-- Step: Tuning -->
     @if (currentStep() === 'tuning') {
-      <section class="step-content">
-        <div class="step-header">
-          <h2 class="step-title">Paramètres de détection</h2>
-          <p class="step-description">Configurez les paramètres pour optimiser la détection</p>
-        </div>
-
-        <div class="tuning-container">
-          <div class="parameter-group">
-            <label class="parameter-label">Seuil de confiance</label>
-            <input type="range" min="0" max="100" value="75" class="parameter-slider" />
-            <span class="parameter-value">75%</span>
-          </div>
-
-          <div class="parameter-group">
-            <label class="parameter-label">Sensibilité de détection</label>
-            <input type="range" min="0" max="100" value="80" class="parameter-slider" />
-            <span class="parameter-value">80%</span>
-          </div>
-
-          <div class="parameter-group checkbox-group">
-            <label class="checkbox-label">
-              <input type="checkbox" checked />
-              Afficher les prédictions en temps réel
-            </label>
-          </div>
-
-          <div class="parameter-group checkbox-group">
-            <label class="checkbox-label">
-              <input type="checkbox" checked />
-              Demander confirmation pour chaque livre
-            </label>
-          </div>
-        </div>
-      </section>
+      <app-inventory-tuning />
     }
 
     <!-- Step: QR Code -->
     @if (currentStep() === 'qrcode') {
-      <section class="step-content">
-        <div class="step-header">
-          <h2 class="step-title">Code QR pour l'application mobile</h2>
-          <p class="step-description">Scannez ce code avec votre téléphone</p>
-        </div>
-
-        <div class="qrcode-container">
-          <div class="qrcode-placeholder">
-            📱 Code QR à venir
-          </div>
-          <p class="qrcode-note">Connectez-vous sur votre téléphone et scannez ce code pour accéder à l'outil de détection</p>
-        </div>
-      </section>
+      <app-inventory-qrcode />
     }
 
     <!-- Step: Detection -->
     @if (currentStep() === 'detection') {
-      <section class="step-content">
-        <div class="step-header">
-          <h2 class="step-title">Détection en cours</h2>
-          <p class="step-description">Utilisez la caméra de votre téléphone pour scanner les rayons</p>
-        </div>
-
-        <div class="detection-container">
-          <div class="status-box">
-            <span class="status-icon">⏳</span>
-            <p class="status-text">En attente de données de détection...</p>
-          </div>
-          <p class="detection-note">Les résultats de détection apparaîtront ici</p>
-        </div>
-      </section>
+      <app-inventory-detection />
     }
 
     <!-- Navigation Buttons -->

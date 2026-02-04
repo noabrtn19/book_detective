@@ -1,5 +1,9 @@
 import os
 
+# Auth: JWT Config
+ALGORITHM = "HS256"
+ACCESS_TOKEN_EXPIRE_MINUTES = 1440  # 24 hours
+
 # Models paths
 YOLO_MODEL_PATH = os.path.abspath("../models_weights/yolo/best.pt") # .pt file
 PADDLEOCR_MODEL_PATH = os.path.abspath("../models_weights/paddleocr/") # folder

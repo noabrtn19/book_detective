@@ -6,10 +6,16 @@ from bcrypt import hashpw, gensalt, checkpw
 from jose import JWTError, jwt
 from database.models.user import User
 from schemas.auth import UserCreate, UserResponse
+import os
+from os.path import join, dirname
+from dotenv import load_dotenv
 
 
 # JWT Configuration
-SECRET_KEY = os.getenv("JWT_SECRET_KEY", "your-secret-key-change-in-production")
+dotenv_path = join(os.path.join(dirname(__file__), "/.."), '.env')
+load_dotenv(dotenv_path)
+
+SECRET_KEY = os.environ.get("JWT_SECRET_KEY")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 1440  # 24 hours
 

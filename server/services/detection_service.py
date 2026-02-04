@@ -1,5 +1,6 @@
 from server.core.config import YOLO_MODEL_PATH, PADDLEOCR_MODEL_PATH
 from server.core.detection import detection_pipeline
+from server.core.entities.detection import DetectionResult
 from ultralytics import YOLO
 from paddleocr import PaddleOCR
 
@@ -14,5 +15,5 @@ class DetectionService:
         self.ocr_engine = PaddleOCR(text_detection_model_dir=PADDLEOCR_MODEL_PATH, use_doc_orientation_classify=True, lang="fr")
 
     def process_bookshelf(self, *args, **kwargs) -> DetectionResult:
-        return detection_pipeline(*args, **kwargs)
+        return detection_pipeline(self.yolo_model, self.ocr_engine, *args, **kwargs)
 

@@ -1,0 +1,56 @@
+<section class="step-content">
+  <div class="step-header">
+    <h2 class="step-title">Paramètres de détection</h2>
+    <p class="step-description">Configurez les paramètres pour optimiser la détection</p>
+  </div>
+
+  <div class="tuning-container">
+    <div class="parameter-group">
+      <label class="parameter-label">Seuil de confiance</label>
+      <input 
+        type="range" 
+        min="0" 
+        max="100" 
+        [value]="confidenceThreshold()"
+        (change)="onConfidenceChange($event)"
+        class="parameter-slider" 
+      />
+      <span class="parameter-value">{{ confidenceThreshold() }}%</span>
+    </div>
+
+    <div class="parameter-group">
+      <label class="parameter-label">Sensibilité de détection</label>
+      <input 
+        type="range" 
+        min="0" 
+        max="100" 
+        [value]="detectionSensitivity()"
+        (change)="onSensitivityChange($event)"
+        class="parameter-slider" 
+      />
+      <span class="parameter-value">{{ detectionSensitivity() }}%</span>
+    </div>
+
+    <div class="parameter-group checkbox-group">
+      <label class="checkbox-label">
+        <input 
+          type="checkbox" 
+          [checked]="showRealtimePredictions()"
+          (change)="showRealtimePredictions.set($event.target.checked)"
+        />
+        Afficher les prédictions en temps réel
+      </label>
+    </div>
+
+    <div class="parameter-group checkbox-group">
+      <label class="checkbox-label">
+        <input 
+          type="checkbox" 
+          [checked]="requestConfirmation()"
+          (change)="requestConfirmation.set($event.target.checked)"
+        />
+        Demander confirmation pour chaque livre
+      </label>
+    </div>
+  </div>
+</section>

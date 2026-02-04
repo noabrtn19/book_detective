@@ -1,17 +1,19 @@
 import cv2
 import pandas as pd
-from server.services.utils import get_warped_crop, clean_ocr_text, find_top_matches
+from server.core.detection.utils import get_warped_crop, clean_ocr_text, find_top_matches
 from time import time
 from typing import Iterable, Any
 from statistics import mean
 from server.core.entities.exceptions import ImageNotFoundException, EmptyImageException
 
 
-def process_bookshelf(image_path:str,
-                      session_id: str,
-                      signatures: Iterable[str],
-                      df: pd.DataFrame,
-                      detection_params: dict[str, Any]):
+def detection_pipeline(yolo_model,
+                       ocr_engine,
+                       image_path:str,
+                       session_id: str,
+                       signatures: Iterable[str],
+                       df: pd.DataFrame,
+                       detection_params: dict[str, Any]):
     starting_time = time()
 
     # Load image

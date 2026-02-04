@@ -1,0 +1,74 @@
+<section class="step-content">
+  <div class="step-header">
+    <h2 class="step-title">Aperçu de vos données</h2>
+    <p class="step-description">{{ bookCount() }} livres détectés</p>
+  </div>
+
+  <!-- Column Mapping Section -->
+  <div class="column-mapping-section">
+    <h3 class="mapping-title">Mappage des colonnes</h3>
+    <p class="mapping-description">Vérifiez que les colonnes obligatoires sont correctement identifiées</p>
+
+    <div class="mapping-container">
+      @for (column of detectedColumns(); track column.name) {
+        <div class="mapping-item">
+          <label class="mapping-label">{{ column.name }}</label>
+          <select 
+            class="mapping-select"
+            [value]="columnMappings()[column.name] || ''"
+            (change)="onColumnMappingChange(column.name, $event)"
+          >
+            <option value="">— Non assignée —</option>
+            <option value="title">Titre (obligatoire)</option>
+            <option value="author">Auteur (obligatoire)</option>
+            <option value="isbn">ISBN (obligatoire)</option>
+            <option value="editor">Éditeur</option>
+            <option value="quantity">Quantité</option>
+          </select>
+          @if (column.confidence > 0) {
+            <span class="detection-badge" [class.high-confidence]="column.confidence > 0.8">
+              Détecté ({{ (column.confidence * 100).toFixed(0) }}%)
+            </span>
+          }
+        </div>
+      }
+    </div>
+
+    <!-- Quantity Warning -->
+    @if (quantityWarningMessage()) {
+      <div class="quantity-warning">
+        <span class="warning-icon">⚠️</span>
+        <span class="warning-text">{{ quantityWarningMessage() }}</span>
+      </div>
+    }
+  </div>
+
+  <!-- Data Preview Table -->
+  <div class="preview-container">
+    <h3 class="preview-subtitle">Aperçu des données (5 premières lignes)</h3>
+    <div class="table-wrapper">
+      <table class="preview-table">
+        <thead>
+          <tr>
+            @for (column of detectedColumns(); track column.name) {
+              <th>{{ column.name }}</th>
+            }
+          </tr>
+        </thead>
+        <tbody>
+          @for (row of rawCsvRows().slice(0, 5); track $index) {
+            <tr>
+              @for (column of detectedColumns(); track column.name) {
+                <td>{{ row[column.name] || '—' }}</td>
+              }
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+
+    @if (bookCount() > 5) {
+      <p class="preview-note">Affichage des 5 premières lignes ({{ bookCount() }} au total)</p>
+    }
+  </div>
+</section>

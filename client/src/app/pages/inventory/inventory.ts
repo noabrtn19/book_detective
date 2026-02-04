@@ -3,11 +3,35 @@ import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { AuthService } from '../../services/auth.service';
 import { ApiService } from '../../services/api.service';
+import { InventoryUploadComponent } from './inventory-upload/inventory-upload';
+import { InventoryPreviewComponent } from './inventory-preview/inventory-preview';
+import { InventoryTuningComponent } from './inventory-tuning/inventory-tuning';
+import { InventoryQrcodeComponent } from './inventory-qrcode/inventory-qrcode';
+import { InventoryDetectionComponent } from './inventory-detection/inventory-detection';
 
+// Stores raw CSV data as parsed from file
+interface CsvRow {
+  [key: string]: string;
+}
+
+// Represents a column with detection confidence
+interface DetectedColumn {
+  name: string; // Original column name from CSV
+  detectedLabel: string | null; // Detected required field label (Title, Author, Editor, ISBN)
+  confidence: number; // Confidence score 0-1 for auto-detection
+}
+
+// Maps CSV columns to required book fields
+interface ColumnMapping {
+  [key: string]: 'title' | 'author' | 'editor' | 'isbn' | 'quantity' | null;
+}
+
+// Final structured book record after column mapping
 interface BookRecord {
   title: string;
   author: string;
-  isbn?: string;
+  editor?: string;
+  isbn: string; // ISBN is now mandatory
   quantity?: number;
 }
 
@@ -16,7 +40,14 @@ type PipelineStep = 'upload' | 'preview' | 'tuning' | 'qrcode' | 'detection';
 @Component({
   selector: 'app-inventory',
   standalone: true,
-  imports: [CommonModule],
+  imports: [
+    CommonModule,
+    InventoryUploadComponent,
+    InventoryPreviewComponent,
+    InventoryTuningComponent,
+    InventoryQrcodeComponent,
+    InventoryDetectionComponent
+  ],
   templateUrl: './inventory.html',
   styleUrl: './inventory.css'
 })
@@ -24,10 +55,14 @@ export class InventoryComponent {
   // Pipeline state
   currentStep = signal<PipelineStep>('upload');
   csvData = signal<BookRecord[]>([]);
-  fileName = signal<string>('');
-  showPreview = signal(false);
   uploadError = signal<string>('');
-  isDraggingOver = signal(false);
+
+  // Column detection state
+  rawCsvRows = signal<CsvRow[]>([]);
+  detectedColumns = signal<DetectedColumn[]>([]);
+  columnMappings = signal<ColumnMapping>({});
+  isQuantityAssigned = signal<boolean>(false); // Track if quantity column is assigned
+  quantityWarningMessage = signal<string>(''); // Warning message when quantity is not assigned
 
   constructor(
     public authService: AuthService,
@@ -40,37 +75,8 @@ export class InventoryComponent {
     }
   }
 
-  // Handle file drop
-  onDragOver(event: DragEvent) {
-    event.preventDefault();
-    this.isDraggingOver.set(true);
-  }
-
-  onDragLeave(event: DragEvent) {
-    event.preventDefault();
-    this.isDraggingOver.set(false);
-  }
-
-  onDrop(event: DragEvent) {
-    event.preventDefault();
-    this.isDraggingOver.set(false);
-    
-    const files = event.dataTransfer?.files;
-    if (files && files.length > 0) {
-      this.handleFileUpload(files[0]);
-    }
-  }
-
-  // Handle file input change
-  onFileSelected(event: Event) {
-    const input = event.target as HTMLInputElement;
-    if (input.files && input.files.length > 0) {
-      this.handleFileUpload(input.files[0]);
-    }
-  }
-
-  // Parse CSV file and extract book records
-  private handleFileUpload(file: File) {
+  // Handle file upload from child component
+  handleFileUpload(file: File) {
     this.uploadError.set('');
 
     // Validate file type
@@ -84,15 +90,13 @@ export class InventoryComponent {
       try {
         const content = e.target?.result as string;
         const records = this.parseCSV(content);
-        
+
         if (records.length === 0) {
           this.uploadError.set('Le fichier CSV ne contient aucune donnée valide');
           return;
         }
 
         this.csvData.set(records);
-        this.fileName.set(file.name);
-        this.showPreview.set(true);
         this.currentStep.set('preview');
       } catch (error) {
         this.uploadError.set('Erreur lors de la lecture du fichier CSV');
@@ -102,55 +106,198 @@ export class InventoryComponent {
     reader.readAsText(file);
   }
 
-  // Simple CSV parser (handles title, author, isbn, quantity columns)
+  // Detects required columns (Title, Author, Editor, ISBN, Quantity) with tolerance
+  // Supports case-insensitive, French/English language variations
+  private detectColumnLabels(headers: string[]): DetectedColumn[] {
+    const requiredFields = ['title', 'author', 'editor', 'isbn', 'quantity'];
+
+    // Define synonyms for each required field with language support
+    const fieldSynonyms: Record<string, string[]> = {
+      'title': ['title', 'titre', 'nom', 'book', 'livre'],
+      'author': ['author', 'auteur', 'writer', 'écrivain'],
+      'editor': ['editor', 'éditeur', 'editeur', 'publisher'],
+      'isbn': ['isbn'],
+      'quantity': ['quantity', 'quantité', 'qty', 'qte', 'nombre', 'count']
+    };
+
+    return headers.map((headerName) => {
+      const lowerHeader = headerName.toLowerCase().trim();
+      let detectedLabel: string | null = null;
+      let confidence = 0;
+
+      // Try to match against required fields
+      for (const field of requiredFields) {
+        const synonyms = fieldSynonyms[field];
+        for (const synonym of synonyms) {
+          if (lowerHeader === synonym) {
+            // Exact match
+            detectedLabel = field;
+            confidence = 1.0;
+            break;
+          } else if (lowerHeader.includes(synonym)) {
+            // Partial match
+            const matchConfidence = synonym.length / lowerHeader.length;
+            if (matchConfidence > confidence) {
+              detectedLabel = field;
+              confidence = matchConfidence;
+            }
+          }
+        }
+        if (confidence === 1.0) break;
+      }
+
+      return {
+        name: headerName,
+        detectedLabel: confidence > 0.6 ? detectedLabel : null,
+        confidence: confidence > 0.6 ? confidence : 0
+      };
+    });
+  }
+
+  // Parse CSV and extract all columns while detecting required fields
   private parseCSV(content: string): BookRecord[] {
     const lines = content.trim().split('\n');
     if (lines.length < 2) {
       return [];
     }
 
-    // Parse header
-    const headerLine = lines[0].toLowerCase();
-    const headers = headerLine.split(',').map(h => h.trim());
-    
-    // Find column indices (flexible mapping)
-    const titleIdx = headers.findIndex(h => 
-      h.includes('title') || h.includes('titre') || h.includes('nom')
-    );
-    const authorIdx = headers.findIndex(h => 
-      h.includes('author') || h.includes('auteur')
-    );
-    const isbnIdx = headers.findIndex(h => 
-      h.includes('isbn')
-    );
-    const quantityIdx = headers.findIndex(h => 
-      h.includes('quantity') || h.includes('quantité') || h.includes('qty')
-    );
+    // Extract headers (preserve original case)
+    const headers = lines[0].split(',').map(h => h.trim());
 
-    if (titleIdx === -1 || authorIdx === -1) {
-      throw new Error('CSV must contain title and author columns');
-    }
+    // Detect column labels for required fields
+    const detectedColumns = this.detectColumnLabels(headers);
+    this.detectedColumns.set(detectedColumns);
 
-    // Parse data rows
-    const records: BookRecord[] = [];
+    // Initialize column mappings based on detection
+    const initialMappings: ColumnMapping = {};
+    detectedColumns.forEach(col => {
+      if (col.detectedLabel) {
+        initialMappings[col.name] = col.detectedLabel as any;
+      } else {
+        initialMappings[col.name] = null;
+      }
+    });
+    this.columnMappings.set(initialMappings);
+
+    // Parse all data rows as raw CSV rows
+    const rawRows: CsvRow[] = [];
     for (let i = 1; i < lines.length; i++) {
       const line = lines[i].trim();
       if (!line) continue;
 
       const values = line.split(',').map(v => v.trim());
+      const row: CsvRow = {};
+      headers.forEach((header, idx) => {
+        row[header] = values[idx] || '';
+      });
+      rawRows.push(row);
+    }
+
+    this.rawCsvRows.set(rawRows);
+
+    // Convert raw rows to book records using current column mappings
+    return this.convertRawRowsToBookRecords(rawRows, initialMappings, headers);
+  }
+
+  // Converts raw CSV rows to structured book records using column mapping
+  private convertRawRowsToBookRecords(
+    rawRows: CsvRow[],
+    mappings: ColumnMapping,
+    headers: string[]
+  ): BookRecord[] {
+    const records: BookRecord[] = [];
+
+    // Find which CSV column maps to each required field
+    const columnIndexMap: { [key: string]: string | undefined } = {
+      'title': undefined,
+      'author': undefined,
+      'editor': undefined,
+      'isbn': undefined,
+      'quantity': undefined
+    };
+
+    for (const [csvColumn, fieldLabel] of Object.entries(mappings)) {
+      if (fieldLabel) {
+        columnIndexMap[fieldLabel] = csvColumn;
+      }
+    }
+
+    // Title, author, and ISBN are required
+    if (!columnIndexMap['title'] || !columnIndexMap['author'] || !columnIndexMap['isbn']) {
+      throw new Error('CSV must contain title, author, and ISBN columns');
+    }
+
+    // Check if quantity column is assigned and set warning if not
+    const quantityAssigned = !!columnIndexMap['quantity'];
+    this.isQuantityAssigned.set(quantityAssigned);
+
+    if (!quantityAssigned) {
+      this.quantityWarningMessage.set(
+        'La colonne Quantité n\'est pas assignée. Les quantités seront définies à 1 pour chaque livre.'
+      );
+    } else {
+      this.quantityWarningMessage.set('');
+    }
+
+    // Convert each raw row to a book record
+    for (const row of rawRows) {
       const record: BookRecord = {
-        title: values[titleIdx] || '',
-        author: values[authorIdx] || '',
-        isbn: isbnIdx !== -1 ? values[isbnIdx] || undefined : undefined,
-        quantity: quantityIdx !== -1 ? parseInt(values[quantityIdx], 10) || 1 : 1
+        title: row[columnIndexMap['title']!] || '',
+        author: row[columnIndexMap['author']!] || '',
+        isbn: row[columnIndexMap['isbn']!] || ''
       };
 
-      if (record.title && record.author) {
+      if (columnIndexMap['editor']) {
+        record.editor = row[columnIndexMap['editor']] || undefined;
+      }
+
+      // Handle quantity field
+      if (columnIndexMap['quantity']) {
+        const qtyValue = row[columnIndexMap['quantity']];
+        record.quantity = qtyValue ? parseInt(qtyValue, 10) || 1 : 1;
+      } else {
+        record.quantity = 1; // Default to 1 if not assigned
+      }
+
+      // Only include records with title, author, and ISBN
+      if (record.title && record.author && record.isbn) {
         records.push(record);
       }
     }
 
     return records;
+  }
+
+  // Handle column mapping change from select dropdown
+  onColumnMappingChange(columnName: string, event: Event) {
+    const selectElement = event.target as HTMLSelectElement;
+    const fieldLabel = selectElement.value;
+
+    const currentMappings = this.columnMappings();
+    const updatedMappings: ColumnMapping = { ...currentMappings };
+
+    if (fieldLabel === '') {
+      updatedMappings[columnName] = null;
+    } else {
+      updatedMappings[columnName] = fieldLabel as 'title' | 'author' | 'editor' | 'isbn';
+    }
+
+    this.updateColumnMapping(updatedMappings);
+  }
+
+  // Update column mapping and refresh book records
+  private updateColumnMapping(mappings: ColumnMapping) {
+    this.columnMappings.set(mappings);
+
+    const rawRows = this.rawCsvRows();
+    const headers = Array.from(new Set(rawRows.flatMap(row => Object.keys(row))));
+
+    try {
+      const updatedRecords = this.convertRawRowsToBookRecords(rawRows, mappings, headers);
+      this.csvData.set(updatedRecords);
+    } catch (error) {
+      this.uploadError.set('Erreur lors de la mise à jour des données');
+    }
   }
 
   // Move to next step
@@ -177,9 +324,12 @@ export class InventoryComponent {
   resetPipeline() {
     this.currentStep.set('upload');
     this.csvData.set([]);
-    this.fileName.set('');
-    this.showPreview.set(false);
     this.uploadError.set('');
+    this.rawCsvRows.set([]);
+    this.detectedColumns.set([]);
+    this.columnMappings.set({});
+    this.isQuantityAssigned.set(false);
+    this.quantityWarningMessage.set('');
   }
 
   // Get display name for current step
