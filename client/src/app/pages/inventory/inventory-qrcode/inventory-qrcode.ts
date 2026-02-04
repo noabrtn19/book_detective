@@ -6,6 +6,6 @@ import { CommonModule } from '@angular/common';
   standalone: true,
   imports: [CommonModule],
   templateUrl: './inventory-qrcode.html',
-  styleUrl: './inventory-qrcode.css'
+  styleUrls: ['./inventory-qrcode.css', '../inventory.css']
 })
 export class InventoryQrcodeComponent {}

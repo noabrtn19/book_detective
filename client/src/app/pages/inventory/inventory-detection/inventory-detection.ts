@@ -6,6 +6,6 @@ import { CommonModule } from '@angular/common';
   standalone: true,
   imports: [CommonModule],
   templateUrl: './inventory-detection.html',
-  styleUrl: './inventory-detection.css'
+  styleUrls: ['./inventory-detection.css', '../inventory.css']
 })
 export class InventoryDetectionComponent {}

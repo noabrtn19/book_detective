@@ -6,7 +6,7 @@ import { CommonModule } from '@angular/common';
   standalone: true,
   imports: [CommonModule],
   templateUrl: './inventory-tuning.html',
-  styleUrl: './inventory-tuning.css'
+  styleUrls: ['./inventory-tuning.css', '../inventory.css']
 })
 export class InventoryTuningComponent {
   confidenceThreshold = signal(75);

@@ -20,7 +20,7 @@ interface ColumnMapping {
   standalone: true,
   imports: [CommonModule],
   templateUrl: './inventory-preview.html',
-  styleUrl: './inventory-preview.css'
+  styleUrls: ['./inventory-preview.css', '../inventory.css']
 })
 export class InventoryPreviewComponent {
   // Inputs

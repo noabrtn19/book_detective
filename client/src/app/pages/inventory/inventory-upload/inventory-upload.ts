@@ -6,7 +6,7 @@ import { CommonModule } from '@angular/common';
   standalone: true,
   imports: [CommonModule],
   templateUrl: './inventory-upload.html',
-  styleUrl: './inventory-upload.css'
+  styleUrls: ['./inventory-upload.css', '../inventory.css']
 })
 export class InventoryUploadComponent {
   isDraggingOver = signal(false);
