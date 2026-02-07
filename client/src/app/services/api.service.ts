@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { AuthResponse, User } from '../models/user.model';
+import { DetectionParams } from '../models/detection_params.model';
 
 export interface UserResponse {
   user: User;
@@ -43,12 +44,14 @@ export class ApiService {
     return this.http.post(`api/auth/logout`, {}, { headers });
   }
 
-  uploadInventoryCsv(file: File, token: string): Observable<any> {
+  uploadInventoryCsv(file: File, params: DetectionParams, token: string): Observable<any> {
     const formData = new FormData();
-    formData.append('file', file);
+    formData.append('csv_file', file);
+    formData.append('detection_params', JSON.stringify(params));
+    console.log("Token:", token);
     const headers = new HttpHeaders({
       'Authorization': `Bearer ${token}`
     });
-    return this.http.post(`api/inventory/upload-csv`, formData, { headers });
+    return this.http.post(`api/inventory/session`, formData, { headers });
   }
 }

@@ -1,3 +1,52 @@
+/* Loading when uploading CSV */
+/* Full screen overlay */
+.loading-overlay {
+  position: fixed; /* Locks to the viewport */
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.7); /* Black with 70% opacity */
+  z-index: 9999; /* Ensures it sits on top of everything */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  backdrop-filter: blur(2px); /* Optional: adds a nice blur effect to background */
+}
+
+/* Container for spinner and text */
+.loading-content {
+  text-align: center;
+  color: white;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+}
+
+.loading-content p {
+  font-size: 1.2rem;
+  font-weight: 500;
+  margin: 0;
+  letter-spacing: 0.5px;
+}
+
+/* The Spinning Wheel */
+.spinner {
+  width: 50px;
+  height: 50px;
+  border: 4px solid rgba(255, 255, 255, 0.3); /* Faint white ring */
+  border-top: 4px solid #fff; /* Bright white top for spinning effect */
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+/* Animation Keyframes */
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
 .inventory-wrapper {
   display: grid;
   grid-template-columns: 280px 1fr;

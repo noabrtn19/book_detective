@@ -1,3 +1,15 @@
+@if (isUploading()) {
+  <div class="loading-overlay">
+    <div class="loading-content">
+      <div class="spinner"></div>
+      <p>
+        <b>Un instant...</b><br>
+        Nous transmettons vos données CSV et vos paramètres de détection au serveur...
+      </p>
+    </div>
+  </div>
+}
+
 <div class="inventory-wrapper">
   <!-- Pipeline Sidebar -->
   <aside class="pipeline-sidebar">
@@ -88,7 +100,7 @@
 
     <!-- Step: Tuning -->
     @if (currentStep() === 'tuning') {
-      <app-inventory-tuning />
+      <app-inventory-tuning [(settings)]="detection_params" />
     }
 
     <!-- Step: QR Code -->

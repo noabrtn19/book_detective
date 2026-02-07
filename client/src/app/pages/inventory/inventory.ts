@@ -8,6 +8,8 @@ import { InventoryPreviewComponent } from './inventory-preview/inventory-preview
 import { InventoryTuningComponent } from './inventory-tuning/inventory-tuning';
 import { InventoryQrcodeComponent } from './inventory-qrcode/inventory-qrcode';
 import { InventoryDetectionComponent } from './inventory-detection/inventory-detection';
+import { BookRecord } from '../../models/book_record.model'
+import { DetectionParams } from '../../models/detection_params.model';
 
 // Stores raw CSV data as parsed from file
 interface CsvRow {
@@ -24,15 +26,6 @@ interface DetectedColumn {
 // Maps CSV columns to required book fields
 interface ColumnMapping {
   [key: string]: 'title' | 'author' | 'editor' | 'isbn' | 'quantity' | null;
-}
-
-// Final structured book record after column mapping
-interface BookRecord {
-  title: string;
-  author: string;
-  editor?: string;
-  isbn: string; // ISBN is now mandatory
-  quantity?: number;
 }
 
 type PipelineStep = 'upload' | 'preview' | 'tuning' | 'qrcode' | 'detection';
@@ -55,7 +48,11 @@ export class InventoryComponent {
   // Pipeline state
   currentStep = signal<PipelineStep>('upload');
   csvData = signal<BookRecord[]>([]);
+
+  // CSV upload
   uploadError = signal<string>('');
+  isUploading = signal<boolean>(false);
+  file: File | null = null;
 
   // Column detection state
   rawCsvRows = signal<CsvRow[]>([]);
@@ -63,6 +60,13 @@ export class InventoryComponent {
   columnMappings = signal<ColumnMapping>({});
   isQuantityAssigned = signal<boolean>(false); // Track if quantity column is assigned
   quantityWarningMessage = signal<string>(''); // Warning message when quantity is not assigned
+
+  // Detection params
+  detection_params = signal<DetectionParams>({
+    yolo_conf_threshold: 0.25,
+    match_conf_threshold: 50.0,
+    match_ambiguity_ratio: 1.3,
+  });
 
   constructor(
     public authService: AuthService,
@@ -77,6 +81,8 @@ export class InventoryComponent {
 
   // Handle file upload from child component
   handleFileUpload(file: File) {
+    this.file = file;
+
     this.uploadError.set('');
 
     // Validate file type
@@ -304,6 +310,11 @@ export class InventoryComponent {
   moveToNextStep() {
     const steps: PipelineStep[] = ['upload', 'preview', 'tuning', 'qrcode', 'detection'];
     const currentIndex = steps.indexOf(this.currentStep());
+
+    if (steps[currentIndex] == "tuning") {
+      this.sendDataToBackend();
+      return;
+    }
     
     if (currentIndex < steps.length - 1) {
       this.currentStep.set(steps[currentIndex + 1]);
@@ -318,6 +329,103 @@ export class InventoryComponent {
     if (currentIndex > 0) {
       this.currentStep.set(steps[currentIndex - 1]);
     }
+  }
+
+  // Send CSV + detection params to backend
+  private sendDataToBackend() {
+    this.isUploading.set(true);
+    this.uploadError.set(''); // Reset des erreurs précédentes
+
+    let token: string | null = this.authService.getToken();
+    if (token == null) {
+      this.isUploading.set(false);
+      this.router.navigate(['/login']);
+      return
+    }
+
+    this.file = this.generateStandardizedCsvFile();
+    if (this.file == null) {
+      this.isUploading.set(false);
+      const msg = "Fichier CSV invalide.";
+        this.uploadError.set(msg);
+        return
+    }
+
+    this.apiService.uploadInventoryCsv(this.file, this.detection_params(), token).subscribe({
+      next: (response) => {
+        console.log('Succès:', response);
+        this.isUploading.set(false);
+        // On force le passage à l'étape suivante uniquement si l'API répond succès
+        this.currentStep.set('qrcode');
+      },
+      error: (err) => {
+        console.error('Erreur API:', err);
+        this.isUploading.set(false);
+        // Affiche l'erreur à l'utilisateur (ex: 401 Unauthorized ou 422 Validation)
+        const msg = err.error?.detail || "Erreur lors de la sauvegarde de l'inventaire.";
+        this.uploadError.set(msg);
+      }
+    });
+  }
+
+  /**
+   * Génère un nouveau fichier CSV.
+   * - Les colonnes mappées sont renommées (ex: "Titre du livre" -> "title").
+   * - Les colonnes non mappées conservent leur nom d'origine et sont incluses.
+   */
+  private generateStandardizedCsvFile(): File | null {
+    const rawRows = this.rawCsvRows();
+    const mappings = this.columnMappings();
+    
+    if (rawRows.length === 0) return null;
+
+    // 1. Récupérer la liste des en-têtes originaux (toutes les colonnes)
+    // On se base sur la première ligne pour avoir l'ordre et les clés
+    const originalHeaders = Object.keys(rawRows[0]);
+
+    // 2. Construire la nouvelle ligne d'en-tête
+    // Pour chaque colonne originale :
+    // - Si elle est mappée (ex: mappée vers 'isbn'), on écrit 'isbn'.
+    // - Sinon, on garde le nom original (ex: 'Commentaire').
+    const finalHeaders = originalHeaders.map(header => {
+      const standardLabel = mappings[header];
+      // Si standardLabel existe (n'est pas null), on l'utilise, sinon on garde l'original
+      return standardLabel ? standardLabel : header;
+    });
+
+    // On joint les en-têtes pour la première ligne du CSV
+    const headerLine = finalHeaders.join(',');
+
+    // 3. Construire les lignes de données
+    const csvLines = rawRows.map(row => {
+      // Pour chaque ligne, on parcourt les colonnes dans le même ordre que les en-têtes
+      return originalHeaders.map(header => {
+        let value = row[header] || '';
+        
+        // --- Logique de nettoyage et d'échappement CSV (RFC 4180) ---
+        
+        // Convertir en string et supprimer les retours chariot parasites
+        value = value.toString().replace(/\r/g, '').trim();
+
+        // Si la valeur contient des caractères spéciaux (virgule, guillemet, saut de ligne)
+        if (value.includes(',') || value.includes('"') || value.includes('\n')) {
+          // On double les guillemets existants (ex: a "quote" -> "a ""quote""")
+          // Et on entoure le tout de guillemets
+          value = `"${value.replace(/"/g, '""')}"`;
+        }
+        
+        return value;
+      }).join(',');
+    });
+
+    // 4. Assembler le contenu final
+    const csvContent = [headerLine, ...csvLines].join('\n');
+
+    // 5. Créer l'objet File
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const fileName = this.file ? `cleaned_${this.file.name}` : 'inventory_cleaned.csv';
+    
+    return new File([blob], fileName, { type: 'text/csv' });
   }
 
   // Reset the pipeline

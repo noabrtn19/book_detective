@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from typing import List, Optional
 from time import time
 from enum import Enum
-from server.core.config import DEFAULT_YOLO_CONF_THRESHOLD, DEFAULT_MATCH_AMBIGUITY_RATIO, DEFAULT_MATCH_CONF_THRESHOLD
+from core.config import DEFAULT_YOLO_CONF_THRESHOLD, DEFAULT_MATCH_AMBIGUITY_RATIO, DEFAULT_MATCH_CONF_THRESHOLD
 
 class DetectionStatus(str, Enum):
     MATCHED = "matched"      # ✅ Identifié avec certitude (> seuil haut)
@@ -14,10 +14,10 @@ class DetectionStatus(str, Enum):
 class BookCandidate:
     title: str
     author: str
-    editor: Optional[str] = None
-    isbn: Optional[str] = None      # Utile pour la certitude absolue
     db_id: int                      # L'ID unique dans ton CSV/Base de données
     match_score: float              # Score de similitude (0-100)
+    editor: Optional[str] = None
+    isbn: Optional[str] = None      # Utile pour la certitude absolue
 
 # --- B. La détection d'un livre unique (Le "Livre") ---
 @dataclass
@@ -37,14 +37,17 @@ class BookDetection:
 
     # 4. Intelligence (Le résultat du matching)
     status: DetectionStatus        # MATCHED, AMBIGUOUS, UNKNOWN
-    best_matches: List[BookCandidate] = []
+    best_matches: List[BookCandidate]
 
 # --- C. Le Résultat Global de l'Image (L'objet racine) ---
 @dataclass
 class DetectionResult:
+    # La liste des livres trouvés
+    detections: List[BookDetection]
+    
     # Métadonnées de l'analyse
     session_id: str                 # Lien avec l'utilisateur/session upload
-    timestamp: float = time.time()
+    timestamp: float = time()
     processing_time_ms: float = 0.0       # Pour surveiller la performance (ex: 450ms)
     
     # Résumé rapide (pour les compteurs en haut de l'app)
@@ -52,9 +55,6 @@ class DetectionResult:
     count_matched: int = 0
     count_ambiguous: int = 0
     count_unknown: int = 0
-    
-    # La liste des livres trouvés
-    detections: List[BookDetection] = []
 
 # --- D. Paramètres d'une détection ---
 @dataclass

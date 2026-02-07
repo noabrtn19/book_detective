@@ -1,5 +1,5 @@
 from typing import List
-from detection import DetectionParams
+from core.entities.detection import DetectionParams
 import pandas as pd
 from dataclasses import dataclass
 

@@ -6,51 +6,45 @@
 
   <div class="tuning-container">
     <div class="parameter-group">
-      <label class="parameter-label">Seuil de confiance</label>
+      <label class="parameter-label">Seuil de confiance YOLO</label>
       <input 
         type="range" 
         min="0" 
-        max="100" 
-        [value]="confidenceThreshold()"
-        (change)="onConfidenceChange($event)"
+        max="100"
+        step="0.5"
+        [value]="settings().yolo_conf_threshold*100"
+        (change)="onYoloConfidenceChange($event)"
         class="parameter-slider" 
       />
-      <span class="parameter-value">{{ confidenceThreshold() }}%</span>
+      <span class="parameter-value">{{ settings().yolo_conf_threshold*100 | number:'1.0-0' }}%</span>
     </div>
 
     <div class="parameter-group">
-      <label class="parameter-label">Sensibilité de détection</label>
+      <label class="parameter-label">Seuil de confiance du matching</label>
       <input 
         type="range" 
         min="0" 
-        max="100" 
-        [value]="detectionSensitivity()"
-        (change)="onSensitivityChange($event)"
+        max="100"
+        step="0.5"
+        [value]="settings().match_conf_threshold"
+        (change)="onMatchConfidenceChange($event)"
         class="parameter-slider" 
       />
-      <span class="parameter-value">{{ detectionSensitivity() }}%</span>
+      <span class="parameter-value">{{ settings().match_conf_threshold }}%</span>
     </div>
 
-    <div class="parameter-group checkbox-group">
-      <label class="checkbox-label">
-        <input 
-          type="checkbox" 
-          [checked]="showRealtimePredictions()"
-          (change)="showRealtimePredictions.set($event.target.checked)"
-        />
-        Afficher les prédictions en temps réel
-      </label>
-    </div>
-
-    <div class="parameter-group checkbox-group">
-      <label class="checkbox-label">
-        <input 
-          type="checkbox" 
-          [checked]="requestConfirmation()"
-          (change)="requestConfirmation.set($event.target.checked)"
-        />
-        Demander confirmation pour chaque livre
-      </label>
+    <div class="parameter-group">
+      <label class="parameter-label">Ratio d'ambiguïté du matching</label>
+      <input 
+        type="range" 
+        min="1" 
+        max="10"
+        step="0.05"
+        [value]="settings().match_ambiguity_ratio"
+        (change)="onMatchAmbiguityRatioChange($event)"
+        class="parameter-slider" 
+      />
+      <span class="parameter-value">{{ settings().match_ambiguity_ratio }}%</span>
     </div>
   </div>
 </section>

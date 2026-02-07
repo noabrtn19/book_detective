@@ -21,7 +21,7 @@ cd ..
 
 # 2. Pause pour l'initialisation
 echo "⏳ Attente du démarrage des modèles ML..."
-sleep 3
+sleep 4
 
 # 3. Lancement du Frontend
 echo "🎨 Initialisation du Frontend (Angular)..."

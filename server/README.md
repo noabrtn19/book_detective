@@ -36,6 +36,8 @@ app/
 |── requirements.txt
 |
 |── alembic.ini
+|
+|── dependencies.py     # <--- Useful dependencies to inject: database, get_current_user
 ```
 
 ## Setup

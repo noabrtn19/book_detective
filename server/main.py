@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from database.database import Base, engine
 from database.models import User
-from routers import auth
+from routers import auth, inventory_session
 
 # Create all database tables
 Base.metadata.create_all(bind=engine)
@@ -24,6 +24,7 @@ app.add_middleware(
 
 # Include routers with /api prefix
 app.include_router(auth.router, prefix="/api")
+app.include_router(inventory_session.router, prefix="/api")
 
 
 @app.get("/health")
